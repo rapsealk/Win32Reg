@@ -13,14 +13,21 @@ namespace Win32Reg
         const int SPIF_UPDATEINIFILE = 0x01;
         const int SPIF_SENDCHANGE = 0x02;
 
-        const string RegistryAppName = "Control Panel";
-
         static void Main(string[] args)
         {
             // 컴퓨터\HKEY_CURRENT_USER\Control Panel\Cursors
             string previousValue = ReadControlPanelCursorArrow();
             Console.WriteLine($"Previous value: {previousValue}");
-            bool result = WriteControlPanelCursorArrow();
+
+            bool result = false;
+            if (args.Length > 0)
+            {
+                result = WriteControlPanelCursorArrow(args[0]);
+            }
+            else
+            {
+                result = ResetControlPanelCursorArrow();
+            }
             Console.WriteLine($"ControlPanel.Cursor.Arrow: {result}");
             SystemParametersInfo(SPI_SETCURSORS, 0, 0, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
         }
@@ -41,14 +48,32 @@ namespace Win32Reg
             return regKey.GetValue("Arrow", "").ToString();
         }
 
-        public static bool WriteControlPanelCursorArrow()
+        public static bool WriteControlPanelCursorArrow(string path)
+        {
+            RegistryKey regKey = Registry.CurrentUser.OpenSubKey(Path.Combine("Control Panel", "Cursors"), true);
+
+            try
+            {
+                path = Path.GetFullPath(path);
+                regKey.SetValue("Arrow", path);
+            }
+            catch (Exception e)
+            {
+                Console.Error.WriteLine($"Error: {e}");
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool ResetControlPanelCursorArrow()
         {
             RegistryKey regKey = Registry.CurrentUser.OpenSubKey(Path.Combine("Control Panel", "Cursors"), true);
 
             try
             {
                 string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "git", "TheNewFeature", "retrograde-tour-agency", "resources", "cursor-guide.cur");
-                regKey.SetValue("Arrow", path);
+                regKey.SetValue("Arrow", @"%SystemRoot%\cursors\aero_arrow.cur");
             }
             catch (Exception e)
             {
